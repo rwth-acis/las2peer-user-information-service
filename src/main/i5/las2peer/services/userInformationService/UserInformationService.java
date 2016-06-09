@@ -11,9 +11,9 @@ import i5.las2peer.persistency.EnvelopeException;
 import i5.las2peer.security.L2pSecurityException;
 import i5.las2peer.tools.SerializationException;
 
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -56,14 +56,14 @@ public class UserInformationService extends Service {
 	 * @param fields an array of requested fields
 	 * @return a map of the requested user information fields, or null on error
 	 */
-	public Map<String, Object> get(long agentId, String[] fields) {
+	public Map<String, Serializable> get(long agentId, String[] fields) {
 		try {
-			Map<String, Object> result = new HashMap<>();
+			Map<String, Serializable> result = new HashMap<>();
 
 			for (String field : fields) {
 				if (isValidField(field, null)) {
 					Envelope env = load(agentId, field);
-					result.put(field, env.getContent(String.class));
+					result.put(field, env.getContentAsString());
 				}
 			}
 
@@ -71,6 +71,7 @@ public class UserInformationService extends Service {
 
 		} catch (L2pSecurityException | StorageException | EnvelopeException | UnsupportedEncodingException
 				| SerializationException e) {
+			e.printStackTrace();
 			return null;
 		}
 	}
@@ -81,9 +82,9 @@ public class UserInformationService extends Service {
 	 * @param values key-value pairs of properties
 	 * @return true on success, otherwise false
 	 */
-	public boolean set(Map<String, Object> values) {
+	public boolean set(Map<String, Serializable> values) {
 		try {
-			for (Map.Entry<String, Object> e : values.entrySet()) {
+			for (Map.Entry<String, Serializable> e : values.entrySet()) {
 				if (!isValidField(e.getKey(), e.getValue()))
 					return false;
 
@@ -101,20 +102,39 @@ public class UserInformationService extends Service {
 		}
 	}
 
-	public Map<String, Boolean> getPermissions(List<String> keys) {
-		Map<String, Boolean> result = new HashMap<>();
+	/**
+	 * get a map of permissions
+	 * 
+	 * @param fields list of fields
+	 * @return map of permissions of all given fiels: true for public, false for private; null on error
+	 */
+	public Map<String, Boolean> getPermissions(String[] fields) {
+		try {
+			Map<String, Boolean> result = new HashMap<>();
 
-		for (String field : keys) {
-			if (isValidField(field, null)) {
-				Envelope env = load(getContext().getMainAgent().getId(), field);
+			for (String field : fields) {
+				if (isValidField(field, null)) {
+					Envelope env = load(getContext().getMainAgent().getId(), field);
 
-				boolean isPublic = env.hasReader(getContext().getLocalNode().getAnonymous());
+					boolean isPublic = env.hasReader(getContext().getLocalNode().getAnonymous());
 
-				result.put(field, isPublic);
+					result.put(field, isPublic);
+				}
 			}
+
+			return result;
+		} catch (L2pSecurityException | UnsupportedEncodingException | StorageException | EnvelopeException
+				| SerializationException e) {
+			return null;
 		}
 	}
 
+	/**
+	 * set permissions
+	 * 
+	 * @param permissions map of fields an their permissions
+	 * @return true on success
+	 */
 	public boolean setPermissions(Map<String, Boolean> permissions) {
 		try {
 			for (Map.Entry<String, Boolean> e : permissions.entrySet()) {
@@ -123,7 +143,7 @@ public class UserInformationService extends Service {
 
 				Envelope env = load(getContext().getMainAgent().getId(), e.getKey());
 
-				if (e.getValue())
+				if (e.getValue() == true)
 					env.addReader(getContext().getLocalNode().getAnonymous());
 				else
 					env.removeReader(getContext().getLocalNode().getAnonymous());
@@ -157,7 +177,7 @@ public class UserInformationService extends Service {
 	private Envelope load(long agentId, String field) throws L2pSecurityException, StorageException, EnvelopeException,
 			UnsupportedEncodingException, SerializationException {
 		try {
-			Envelope env = getContext().getStoredObject(Object.class, getEnvelopeId(agentId, field));
+			Envelope env = getContext().getStoredObject(String.class, getEnvelopeId(agentId, field));
 			try {
 				env.open();
 			} catch (L2pSecurityException e) {
@@ -166,8 +186,10 @@ public class UserInformationService extends Service {
 			return env;
 
 		} catch (ArtifactNotFoundException e) {
-			return Envelope.createClassIdEnvelope(Object.class,
+			Envelope env = Envelope.createClassIdEnvelope(new String(),
 					getEnvelopeId(getContext().getMainAgent().getId(), field), getContext().getMainAgent());
+			env.open();
+			return env;
 		}
 	}
 
@@ -206,8 +228,10 @@ public class UserInformationService extends Service {
 	 * @return true if field is valid
 	 */
 	private static boolean isValidField(String field, Object content) {
-		if (!(content instanceof String))
-			return false;
+		if (content != null) {
+			if (!(content instanceof String))
+				return false;
+		}
 
 		return field.equals("firstName") || field.equals("lastName") || field.equals("userImage");
 	}
