@@ -1,5 +1,6 @@
 package i5.las2peer.services.userInformationService;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import i5.las2peer.execution.L2pServiceException;
 import i5.las2peer.p2p.AgentNotKnownException;
@@ -149,10 +150,11 @@ public class ServiceTest {
 		assertTrue(((Map<String, Serializable>) result).get("firstName").equals("Homer"));
 
 		// "malicious" anonymous access
-		fields = new String[] { "lastName" };
+		fields = new String[] { "lastName", "firstName" };
 		result = node.invoke(node.getAnonymous(), UserInformationService.class.getName(), "get", new Serializable[] {
 				testAgent.getId(), fields });
-		assertTrue(result == null);
+		assertTrue(((Map<String, Serializable>) result).get("firstName").equals("Homer"));
+		assertFalse(((Map<String, Serializable>) result).containsKey("lastName"));
 
 	}
 

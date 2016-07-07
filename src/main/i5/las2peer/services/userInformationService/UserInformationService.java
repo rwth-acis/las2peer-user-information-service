@@ -57,23 +57,22 @@ public class UserInformationService extends Service {
 	 * @return a map of the requested user information fields, or null on error
 	 */
 	public Map<String, Serializable> get(long agentId, String[] fields) {
-		try {
-			Map<String, Serializable> result = new HashMap<>();
-
-			for (String field : fields) {
-				if (isValidField(field, null)) {
+		Map<String, Serializable> result = new HashMap<>();
+		for (String field : fields) {
+			if (isValidField(field, null)) {
+				try {
 					Envelope env = load(agentId, field);
 					result.put(field, env.getContentAsString());
+				} catch (L2pSecurityException | StorageException | EnvelopeException | UnsupportedEncodingException
+						| SerializationException e) {
+					// do nothing
 				}
+
 			}
-
-			return result;
-
-		} catch (L2pSecurityException | StorageException | EnvelopeException | UnsupportedEncodingException
-				| SerializationException e) {
-			e.printStackTrace();
-			return null;
 		}
+
+		return result;
+
 	}
 
 	/**
