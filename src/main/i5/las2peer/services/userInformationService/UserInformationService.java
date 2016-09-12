@@ -1,18 +1,16 @@
 package i5.las2peer.services.userInformationService;
 
 import i5.las2peer.api.Service;
+import i5.las2peer.api.exceptions.ArtifactNotFoundException;
+import i5.las2peer.api.exceptions.StorageException;
 import i5.las2peer.logging.L2pLogger;
-import i5.las2peer.p2p.ArtifactNotFoundException;
-import i5.las2peer.p2p.StorageException;
-import i5.las2peer.persistency.DecodingFailedException;
-import i5.las2peer.persistency.EncodingFailedException;
 import i5.las2peer.persistency.Envelope;
-import i5.las2peer.persistency.EnvelopeException;
+import i5.las2peer.security.Context;
 import i5.las2peer.security.L2pSecurityException;
+import i5.las2peer.tools.CryptoException;
 import i5.las2peer.tools.SerializationException;
 
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,13 +59,12 @@ public class UserInformationService extends Service {
 		for (String field : fields) {
 			if (isValidField(field, null)) {
 				try {
-					Envelope env = load(agentId, field);
-					result.put(field, env.getContentAsString());
-				} catch (L2pSecurityException | StorageException | EnvelopeException | UnsupportedEncodingException
-						| SerializationException e) {
+					Envelope env = fetchOrCreateEnvelope(agentId, field);
+					result.put(field, env.getContent());
+				} catch (IllegalArgumentException | SerializationException | CryptoException | StorageException
+						| L2pSecurityException e) {
 					// do nothing
 				}
-
 			}
 		}
 
@@ -87,16 +84,13 @@ public class UserInformationService extends Service {
 				if (!isValidField(e.getKey(), e.getValue()))
 					return false;
 
-				Envelope env = load(getContext().getMainAgent().getId(), e.getKey());
-
-				env.updateContent((String) e.getValue());
-
-				store(env);
+				Envelope env = fetchOrCreateEnvelope(getContext().getMainAgent().getId(), e.getKey());
+				Envelope newVersion = Context.getCurrent().createEnvelope(env, e.getValue());
+				Context.getCurrent().storeEnvelope(newVersion);
 			}
 
 			return true;
-		} catch (L2pSecurityException | StorageException | EnvelopeException | UnsupportedEncodingException
-				| SerializationException e) {
+		} catch (StorageException | SerializationException | IllegalArgumentException | CryptoException e) {
 			return false;
 		}
 	}
@@ -113,17 +107,14 @@ public class UserInformationService extends Service {
 
 			for (String field : fields) {
 				if (isValidField(field, null)) {
-					Envelope env = load(getContext().getMainAgent().getId(), field);
-
-					boolean isPublic = env.hasReader(getContext().getLocalNode().getAnonymous());
-
+					Envelope env = fetchOrCreateEnvelope(getContext().getMainAgent().getId(), field);
+					boolean isPublic = !env.isEncrypted();
 					result.put(field, isPublic);
 				}
 			}
 
 			return result;
-		} catch (L2pSecurityException | UnsupportedEncodingException | StorageException | EnvelopeException
-				| SerializationException e) {
+		} catch (StorageException | SerializationException | IllegalArgumentException | CryptoException e) {
 			return null;
 		}
 	}
@@ -140,19 +131,23 @@ public class UserInformationService extends Service {
 				if (!isValidField(e.getKey(), null))
 					return false;
 
-				Envelope env = load(getContext().getMainAgent().getId(), e.getKey());
+				Envelope env = fetchOrCreateEnvelope(getContext().getMainAgent().getId(), e.getKey());
 
-				if (e.getValue() == true)
-					env.addReader(getContext().getLocalNode().getAnonymous());
-				else
-					env.removeReader(getContext().getLocalNode().getAnonymous());
-
-				store(env);
+				if (e.getValue() != !env.isEncrypted()) {
+					Envelope newVersion;
+					if (e.getValue() == true) {
+						newVersion = Context.getCurrent().createUnencryptedEnvelope(env, env.getContent());
+					} else {
+						newVersion = Context.getCurrent().createEnvelope(env, env.getContent(),
+								getContext().getMainAgent());
+					}
+					Context.getCurrent().storeEnvelope(newVersion);
+				}
 			}
 
 			return true;
-		} catch (L2pSecurityException | StorageException | EnvelopeException | UnsupportedEncodingException
-				| SerializationException e) {
+		} catch (L2pSecurityException | StorageException | SerializationException | IllegalArgumentException
+				| CryptoException e) {
 			return false;
 		}
 	}
@@ -167,52 +162,18 @@ public class UserInformationService extends Service {
 	 * @param agentId
 	 * @param field
 	 * @return
-	 * @throws L2pSecurityException
-	 * @throws StorageException
-	 * @throws EnvelopeException
+	 * @throws CryptoException
+	 * @throws IllegalArgumentException
 	 * @throws SerializationException
-	 * @throws UnsupportedEncodingException
+	 * @throws StorageException
 	 */
-	private Envelope load(long agentId, String field) throws L2pSecurityException, StorageException, EnvelopeException,
-			UnsupportedEncodingException, SerializationException {
+	private Envelope fetchOrCreateEnvelope(long agentId, String field) throws IllegalArgumentException,
+			SerializationException, CryptoException, StorageException {
 		try {
-			Envelope env = getContext().getStoredObject(String.class, getEnvelopeId(agentId, field));
-			try {
-				env.open();
-			} catch (L2pSecurityException e) {
-				env.open(getContext().getLocalNode().getAnonymous());
-			}
-			return env;
-
+			return Context.getCurrent().fetchEnvelope(getEnvelopeId(agentId, field));
 		} catch (ArtifactNotFoundException e) {
-			Envelope env = Envelope.createClassIdEnvelope(new String(),
-					getEnvelopeId(getContext().getMainAgent().getId(), field), getContext().getMainAgent());
-			env.open();
-			return env;
+			return Context.getCurrent().createEnvelope(getEnvelopeId(agentId, field), "", getContext().getMainAgent());
 		}
-	}
-
-	/**
-	 * stores an envelope
-	 * 
-	 * @param env
-	 * @throws L2pSecurityException
-	 * @throws UnsupportedEncodingException
-	 * @throws EncodingFailedException
-	 * @throws SerializationException
-	 * @throws StorageException
-	 * @throws DecodingFailedException
-	 */
-	private void store(Envelope env) throws L2pSecurityException, UnsupportedEncodingException,
-			EncodingFailedException, SerializationException, StorageException, DecodingFailedException {
-
-		if (getContext().getMainAgent().equals(getContext().getLocalNode().getAnonymous()))
-			throw new L2pSecurityException("Data cannot be stored for anonymous!");
-
-		// private by default:
-		// env.addReader(getContext().getLocalNode().getAnonymous());
-		env.addSignature(getContext().getMainAgent());
-		env.store();
 	}
 
 	private static String getEnvelopeId(long agentId, String field) {
