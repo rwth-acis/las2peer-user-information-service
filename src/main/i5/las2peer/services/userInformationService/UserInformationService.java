@@ -1,11 +1,11 @@
 package i5.las2peer.services.userInformationService;
 
+import i5.las2peer.api.Context;
 import i5.las2peer.api.Service;
 import i5.las2peer.api.exceptions.ArtifactNotFoundException;
 import i5.las2peer.api.exceptions.StorageException;
 import i5.las2peer.logging.L2pLogger;
 import i5.las2peer.persistency.Envelope;
-import i5.las2peer.security.Context;
 import i5.las2peer.security.L2pSecurityException;
 import i5.las2peer.tools.CryptoException;
 import i5.las2peer.tools.SerializationException;
