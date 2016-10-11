@@ -2,14 +2,6 @@ package i5.las2peer.services.userInformationService;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import i5.las2peer.execution.L2pServiceException;
-import i5.las2peer.p2p.AgentNotKnownException;
-import i5.las2peer.p2p.LocalNode;
-import i5.las2peer.p2p.TimeoutException;
-import i5.las2peer.security.L2pSecurityException;
-import i5.las2peer.security.ServiceAgent;
-import i5.las2peer.security.UserAgent;
-import i5.las2peer.testing.MockAgentFactory;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -18,6 +10,15 @@ import java.util.Map;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import i5.las2peer.execution.L2pServiceException;
+import i5.las2peer.p2p.AgentNotKnownException;
+import i5.las2peer.p2p.LocalNode;
+import i5.las2peer.p2p.TimeoutException;
+import i5.las2peer.security.L2pSecurityException;
+import i5.las2peer.security.ServiceAgent;
+import i5.las2peer.security.UserAgent;
+import i5.las2peer.testing.MockAgentFactory;
 
 /**
  * Example Test Class demonstrating a basic JUnit test structure.
@@ -145,14 +146,14 @@ public class ServiceTest {
 
 		// Anonymous Access
 		fields = new String[] { "firstName" };
-		result = node.invoke(node.getAnonymous(), UserInformationService.class.getName(), "get", new Serializable[] {
-				testAgent.getId(), fields });
+		result = node.invoke(node.getAnonymous(), UserInformationService.class.getName(), "get",
+				new Serializable[] { testAgent.getId(), fields });
 		assertTrue(((Map<String, Serializable>) result).get("firstName").equals("Homer"));
 
 		// "malicious" anonymous access
 		fields = new String[] { "lastName", "firstName" };
-		result = node.invoke(node.getAnonymous(), UserInformationService.class.getName(), "get", new Serializable[] {
-				testAgent.getId(), fields });
+		result = node.invoke(node.getAnonymous(), UserInformationService.class.getName(), "get",
+				new Serializable[] { testAgent.getId(), fields });
 		assertTrue(((Map<String, Serializable>) result).get("firstName").equals("Homer"));
 		assertFalse(((Map<String, Serializable>) result).containsKey("lastName"));
 

@@ -1,5 +1,9 @@
 package i5.las2peer.services.userInformationService;
 
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+
 import i5.las2peer.api.Context;
 import i5.las2peer.api.Service;
 import i5.las2peer.api.exceptions.ArtifactNotFoundException;
@@ -9,10 +13,6 @@ import i5.las2peer.persistency.Envelope;
 import i5.las2peer.security.L2pSecurityException;
 import i5.las2peer.tools.CryptoException;
 import i5.las2peer.tools.SerializationException;
-
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * las2peer User Information Service
@@ -27,9 +27,7 @@ import java.util.Map;
  * <li>userImage: Reference to file service file</li>
  * </ul>
  * 
- * 
  */
-
 public class UserInformationService extends Service {
 
 	// instantiate the logger class
@@ -81,9 +79,9 @@ public class UserInformationService extends Service {
 	public boolean set(Map<String, Serializable> values) {
 		try {
 			for (Map.Entry<String, Serializable> e : values.entrySet()) {
-				if (!isValidField(e.getKey(), e.getValue()))
+				if (!isValidField(e.getKey(), e.getValue())) {
 					return false;
-
+				}
 				Envelope env = fetchOrCreateEnvelope(getContext().getMainAgent().getId(), e.getKey());
 				Envelope newVersion = Context.getCurrent().createEnvelope(env, e.getValue());
 				Context.getCurrent().storeEnvelope(newVersion);
@@ -128,9 +126,9 @@ public class UserInformationService extends Service {
 	public boolean setPermissions(Map<String, Boolean> permissions) {
 		try {
 			for (Map.Entry<String, Boolean> e : permissions.entrySet()) {
-				if (!isValidField(e.getKey(), null))
+				if (!isValidField(e.getKey(), null)) {
 					return false;
-
+				}
 				Envelope env = fetchOrCreateEnvelope(getContext().getMainAgent().getId(), e.getKey());
 
 				if (e.getValue() != !env.isEncrypted()) {
@@ -167,8 +165,8 @@ public class UserInformationService extends Service {
 	 * @throws SerializationException
 	 * @throws StorageException
 	 */
-	private Envelope fetchOrCreateEnvelope(long agentId, String field) throws IllegalArgumentException,
-			SerializationException, CryptoException, StorageException {
+	private Envelope fetchOrCreateEnvelope(long agentId, String field)
+			throws IllegalArgumentException, SerializationException, CryptoException, StorageException {
 		try {
 			return Context.getCurrent().fetchEnvelope(getEnvelopeId(agentId, field));
 		} catch (ArtifactNotFoundException e) {
@@ -189,8 +187,9 @@ public class UserInformationService extends Service {
 	 */
 	private static boolean isValidField(String field, Object content) {
 		if (content != null) {
-			if (!(content instanceof String))
+			if (!(content instanceof String)) {
 				return false;
+			}
 		}
 
 		return field.equals("firstName") || field.equals("lastName") || field.equals("userImage");
