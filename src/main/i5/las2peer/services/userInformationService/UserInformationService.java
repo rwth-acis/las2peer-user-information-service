@@ -67,7 +67,7 @@ public class UserInformationService extends Service {
 	}
 
 	/**
-	 * sets the information related to the calling agent
+	 * Sets the information related to the calling agent
 	 * 
 	 * @param values key-value pairs of properties
 	 * @return true on success, otherwise false
@@ -90,10 +90,10 @@ public class UserInformationService extends Service {
 	}
 
 	/**
-	 * get a map of permissions
+	 * Gets a map of permissions
 	 * 
 	 * @param fields list of fields
-	 * @return map of permissions of all given fiels: true for public, false for private; null on error
+	 * @return map of permissions of all given fields: true for public, false for private; null on error
 	 */
 	public Map<String, Boolean> getPermissions(String[] fields) {
 		try {
@@ -114,7 +114,7 @@ public class UserInformationService extends Service {
 	}
 
 	/**
-	 * set permissions
+	 * Sets permissions
 	 * 
 	 * @param permissions map of fields an their permissions
 	 * @return true on success
@@ -175,7 +175,7 @@ public class UserInformationService extends Service {
 	}
 
 	/**
-	 * checks if the field is valid
+	 * Checks if the field is valid
 	 * 
 	 * @param field field id
 	 * @param content null, if content is unknown, in this case only the field id is checked
