@@ -14,6 +14,7 @@ import org.junit.Test;
 import i5.las2peer.execution.L2pServiceException;
 import i5.las2peer.p2p.AgentNotKnownException;
 import i5.las2peer.p2p.LocalNode;
+import i5.las2peer.p2p.ServiceNameVersion;
 import i5.las2peer.p2p.TimeoutException;
 import i5.las2peer.security.L2pSecurityException;
 import i5.las2peer.security.ServiceAgent;
@@ -27,7 +28,6 @@ import i5.las2peer.testing.MockAgentFactory;
 public class ServiceTest {
 
 	private static LocalNode node;
-
 	private static UserAgent testAgent, testAgent2;
 	private static final String testPass = "adamspass";
 	private static final String testPass2 = "evespass";
@@ -53,7 +53,8 @@ public class ServiceTest {
 		node.launch();
 
 		// during testing, the specified service version does not matter
-		ServiceAgent testService = ServiceAgent.createServiceAgent(UserInformationService.class.getName(), "a pass");
+		ServiceAgent testService = ServiceAgent
+				.createServiceAgent(new ServiceNameVersion(UserInformationService.class.getName(), "1.0"), "a pass");
 		testService.unlockPrivateKey("a pass");
 
 		node.registerReceiver(testService);
