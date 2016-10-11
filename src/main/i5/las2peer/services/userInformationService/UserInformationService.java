@@ -8,7 +8,6 @@ import i5.las2peer.api.Context;
 import i5.las2peer.api.Service;
 import i5.las2peer.api.exceptions.ArtifactNotFoundException;
 import i5.las2peer.api.exceptions.StorageException;
-import i5.las2peer.logging.L2pLogger;
 import i5.las2peer.persistency.Envelope;
 import i5.las2peer.security.L2pSecurityException;
 import i5.las2peer.tools.CryptoException;
@@ -29,9 +28,6 @@ import i5.las2peer.tools.SerializationException;
  * 
  */
 public class UserInformationService extends Service {
-
-	// instantiate the logger class
-	private final L2pLogger logger = L2pLogger.getInstance(UserInformationService.class.getName());
 
 	private static final String PREFIX = "USER-INFORMATION_";
 
