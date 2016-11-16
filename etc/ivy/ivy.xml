@@ -9,7 +9,7 @@
 		<artifact type="jar" ext="jar" conf="*"/>
 	</publications>
     <dependencies>
-        <dependency org="i5" name="las2peer" rev="0.6.2" changing="true" conf="platform->*" />
+        <dependency org="i5" name="las2peer" rev="0.6.3" changing="true" conf="platform->*" />
         <dependency org="junit" name="junit" rev="4.12" conf="platform->default" />
     </dependencies>
 </ivy-module>
