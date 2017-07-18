@@ -4,14 +4,12 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
+import i5.las2peer.api.Context;
 import i5.las2peer.api.Service;
-import i5.las2peer.api.exceptions.ArtifactNotFoundException;
-import i5.las2peer.api.exceptions.StorageException;
-import i5.las2peer.persistency.Envelope;
-import i5.las2peer.security.Agent;
-import i5.las2peer.security.L2pSecurityException;
-import i5.las2peer.tools.CryptoException;
-import i5.las2peer.tools.SerializationException;
+import i5.las2peer.api.persistency.Envelope;
+import i5.las2peer.api.persistency.EnvelopeException;
+import i5.las2peer.api.persistency.EnvelopeNotFoundException;
+import i5.las2peer.api.security.Agent;
 
 /**
  * las2peer User Information Service
@@ -48,18 +46,17 @@ public class UserInformationService extends Service {
 	 * @param fields an array of requested fields
 	 * @return a map of the requested user information fields, or null on error
 	 */
-	public Map<String, Serializable> get(long agentId, String[] fields) {
+	public Map<String, Serializable> get(String agentId, String[] fields) {
 		Map<String, Serializable> result = new HashMap<>();
 		for (String field : fields) {
 			if (isValidField(field, null)) {
 				try {
-					Envelope env = getContext().fetchEnvelope(getEnvelopeId(agentId, field));
+					Envelope env = Context.get().requestEnvelope(getEnvelopeId(agentId, field));
 					result.put(field, env.getContent());
-				} catch (ArtifactNotFoundException e) {
+				} catch (EnvelopeNotFoundException e) {
 					// value does not exist or is not readable, add default value
 					result.put(field, "");
-				} catch (IllegalArgumentException | SerializationException | CryptoException | StorageException
-						| L2pSecurityException e) {
+				} catch (EnvelopeException e) {
 					// do nothing
 				}
 			}
@@ -78,23 +75,22 @@ public class UserInformationService extends Service {
 	public boolean set(Map<String, Serializable> values) {
 		try {
 			for (Map.Entry<String, Serializable> entry : values.entrySet()) {
-				if (!isValidField(entry.getKey(), entry.getValue())) {
-					return false;
+				if (isValidField(entry.getKey(), entry.getValue())) {
+					Agent owner = Context.get().getMainAgent();
+					String envId = getEnvelopeId(owner.getIdentifier(), entry.getKey());
+					Envelope env;
+					try {
+						env = Context.get().requestEnvelope(envId);
+					} catch (EnvelopeNotFoundException e) {
+						env = Context.get().createEnvelope(envId, owner);
+					}
+					env.setContent(entry.getValue());
+					Context.get().storeEnvelope(env);
 				}
-				Agent owner = getContext().getMainAgent();
-				String envId = getEnvelopeId(owner.getId(), entry.getKey());
-				Envelope newVersion;
-				try {
-					Envelope env = getContext().fetchEnvelope(envId);
-					newVersion = getContext().createEnvelope(env, entry.getValue());
-				} catch (ArtifactNotFoundException e) {
-					newVersion = getContext().createEnvelope(envId, entry.getValue(), owner);
-				}
-				getContext().storeEnvelope(newVersion);
 			}
 
 			return true;
-		} catch (StorageException | SerializationException | IllegalArgumentException | CryptoException e) {
+		} catch (EnvelopeException e) {
 			return false;
 		}
 	}
@@ -112,11 +108,11 @@ public class UserInformationService extends Service {
 			for (String field : fields) {
 				if (isValidField(field, null)) {
 					try {
-						Envelope env = getContext()
-								.fetchEnvelope(getEnvelopeId(getContext().getMainAgent().getId(), field));
-						boolean isPublic = !env.isEncrypted();
+						Envelope env = Context.get()
+								.requestEnvelope(getEnvelopeId(Context.get().getMainAgent().getIdentifier(), field));
+						boolean isPublic = !env.isPrivate();
 						result.put(field, isPublic);
-					} catch (ArtifactNotFoundException e) {
+					} catch (EnvelopeNotFoundException e) {
 						// value does not exist or is not readable, add default value
 						result.put(field, false);
 					}
@@ -124,7 +120,7 @@ public class UserInformationService extends Service {
 			}
 
 			return result;
-		} catch (StorageException | IllegalArgumentException e) {
+		} catch (EnvelopeException | IllegalArgumentException e) {
 			return null;
 		}
 	}
@@ -141,36 +137,33 @@ public class UserInformationService extends Service {
 				if (!isValidField(entry.getKey(), null)) {
 					return false;
 				}
-				Agent owner = getContext().getMainAgent();
-				String envId = getEnvelopeId(owner.getId(), entry.getKey());
+				Agent owner = Context.get().getMainAgent();
+				String envId = getEnvelopeId(owner.getIdentifier(), entry.getKey());
 				try {
-					Envelope env = getContext().fetchEnvelope(envId);
+					Envelope env = Context.get().requestEnvelope(envId);
 					// check if the permission has changed
-					if (entry.getValue() != !env.isEncrypted()) {
-						Envelope newVersion;
+					if (entry.getValue() != !env.isPrivate()) {
 						if (entry.getValue() == true) {
-							newVersion = getContext().createUnencryptedEnvelope(env, env.getContent());
+							env.setPublic();
 						} else {
-							newVersion = getContext().createEnvelope(env, env.getContent(),
-									getContext().getMainAgent());
+							env.addReader(owner);
 						}
-						getContext().storeEnvelope(newVersion);
+						Context.get().storeEnvelope(env);
 					}
-				} catch (ArtifactNotFoundException e) {
+				} catch (EnvelopeNotFoundException e) {
 					// no value means no permission to set
 				}
 			}
 
 			return true;
-		} catch (L2pSecurityException | StorageException | SerializationException | IllegalArgumentException
-				| CryptoException e) {
+		} catch (EnvelopeException e) {
 			return false;
 		}
 	}
 
 	// Helper methods
 
-	private static String getEnvelopeId(long agentId, String field) {
+	private static String getEnvelopeId(String agentId, String field) {
 		return PREFIX + agentId + "_" + field;
 	}
 

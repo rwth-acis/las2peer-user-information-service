@@ -11,14 +11,14 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import i5.las2peer.execution.L2pServiceException;
-import i5.las2peer.p2p.AgentNotKnownException;
+import i5.las2peer.api.execution.ServiceInvocationException;
+import i5.las2peer.api.p2p.ServiceNameVersion;
+import i5.las2peer.api.security.AgentLockedException;
 import i5.las2peer.p2p.LocalNode;
-import i5.las2peer.p2p.ServiceNameVersion;
-import i5.las2peer.p2p.TimeoutException;
-import i5.las2peer.security.L2pSecurityException;
-import i5.las2peer.security.ServiceAgent;
-import i5.las2peer.security.UserAgent;
+import i5.las2peer.p2p.LocalNodeManager;
+import i5.las2peer.security.AnonymousAgentImpl;
+import i5.las2peer.security.ServiceAgentImpl;
+import i5.las2peer.security.UserAgentImpl;
 import i5.las2peer.testing.MockAgentFactory;
 
 /**
@@ -28,7 +28,7 @@ import i5.las2peer.testing.MockAgentFactory;
 public class ServiceTest {
 
 	private static LocalNode node;
-	private static UserAgent testAgent, testAgent2;
+	private static UserAgentImpl testAgent, testAgent2;
 	private static final String testPass = "adamspass";
 	private static final String testPass2 = "evespass";
 
@@ -43,19 +43,19 @@ public class ServiceTest {
 	public static void startServer() throws Exception {
 
 		// start node
-		node = LocalNode.newNode();
+		node = new LocalNodeManager().newNode();
 		testAgent = MockAgentFactory.getAdam();
-		testAgent.unlockPrivateKey(testPass); // agent must be unlocked in order to be stored
+		testAgent.unlock(testPass); // agent must be unlocked in order to be stored
 		node.storeAgent(testAgent);
 		testAgent2 = MockAgentFactory.getEve();
-		testAgent2.unlockPrivateKey(testPass2); // agent must be unlocked in order to be stored
+		testAgent2.unlock(testPass2); // agent must be unlocked in order to be stored
 		node.storeAgent(testAgent2);
 		node.launch();
 
 		// during testing, the specified service version does not matter
-		ServiceAgent testService = ServiceAgent
+		ServiceAgentImpl testService = ServiceAgentImpl
 				.createServiceAgent(new ServiceNameVersion(UserInformationService.class.getName(), "1.0"), "a pass");
-		testService.unlockPrivateKey("a pass");
+		testService.unlock("a pass");
 
 		node.registerReceiver(testService);
 
@@ -70,25 +70,18 @@ public class ServiceTest {
 	public static void shutDownServer() throws Exception {
 		node.shutDown();
 		node = null;
-
-		LocalNode.reset();
 	}
 
 	/**
 	 * 
 	 * Tests the validation method.
-	 * 
-	 * @throws TimeoutException
-	 * @throws InterruptedException
-	 * @throws L2pSecurityException
-	 * @throws L2pServiceException
-	 * @throws AgentNotKnownException
+	 * @throws ServiceInvocationException 
+	 * @throws AgentLockedException 
 	 * 
 	 */
 	@SuppressWarnings("unchecked")
 	@Test
-	public void test() throws AgentNotKnownException, L2pServiceException, L2pSecurityException, InterruptedException,
-			TimeoutException {
+	public void test() throws AgentLockedException, ServiceInvocationException {
 
 		// Create Profile
 		Map<String, Serializable> values = new HashMap<>();
@@ -103,7 +96,7 @@ public class ServiceTest {
 		// Access Profile
 		String[] fields = new String[] { "firstName", "lastName", "userImage" };
 		result = node.invoke(testAgent, UserInformationService.class.getName(), "get",
-				new Serializable[] { testAgent.getId(), fields });
+				new Serializable[] { testAgent.getIdentifier(), fields });
 		assertTrue(((Map<String, Serializable>) result).get("firstName").equals("Bart"));
 		assertTrue(((Map<String, Serializable>) result).get("lastName").equals("Simpson"));
 		assertTrue(((Map<String, Serializable>) result).get("userImage").equals("asdf"));
@@ -119,7 +112,7 @@ public class ServiceTest {
 		// Access Profile
 		fields = new String[] { "firstName", "lastName" };
 		result = node.invoke(testAgent, UserInformationService.class.getName(), "get",
-				new Serializable[] { testAgent.getId(), fields });
+				new Serializable[] { testAgent.getIdentifier(), fields });
 		assertTrue(((Map<String, Serializable>) result).get("firstName").equals("Homer"));
 		assertTrue(((Map<String, Serializable>) result).get("lastName").equals("Simpson"));
 
@@ -142,19 +135,19 @@ public class ServiceTest {
 		// other user Access
 		fields = new String[] { "firstName" };
 		result = node.invoke(testAgent2, UserInformationService.class.getName(), "get",
-				new Serializable[] { testAgent.getId(), fields });
+				new Serializable[] { testAgent.getIdentifier(), fields });
 		assertTrue(((Map<String, Serializable>) result).get("firstName").equals("Homer"));
 
 		// Anonymous Access
 		fields = new String[] { "firstName" };
-		result = node.invoke(node.getAnonymous(), UserInformationService.class.getName(), "get",
-				new Serializable[] { testAgent.getId(), fields });
+		result = node.invoke(AnonymousAgentImpl.getInstance(), UserInformationService.class.getName(), "get",
+				new Serializable[] { testAgent.getIdentifier(), fields });
 		assertTrue(((Map<String, Serializable>) result).get("firstName").equals("Homer"));
 
 		// "malicious" anonymous access
 		fields = new String[] { "lastName", "firstName" };
-		result = node.invoke(node.getAnonymous(), UserInformationService.class.getName(), "get",
-				new Serializable[] { testAgent.getId(), fields });
+		result = node.invoke(AnonymousAgentImpl.getInstance(), UserInformationService.class.getName(), "get",
+				new Serializable[] { testAgent.getIdentifier(), fields });
 		assertTrue(((Map<String, Serializable>) result).get("firstName").equals("Homer"));
 		assertFalse(((Map<String, Serializable>) result).containsKey("lastName"));
 
