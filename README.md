@@ -1,6 +1,14 @@
-![las2peer](https://github.com/rwth-acis/LAS2peer/blob/master/img/logo/bitmap/las2peer-logo-128x128.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/rwth-acis/las2peer/master/img/logo/bitmap/las2peer-logo-128x128.png" />
+</p>
+<h1 align="center">las2peer User Information Service</h1>
+<p align="center">
+  <a href="https://travis-ci.org/rwth-acis/las2peer-user-information-service" alt="Travis Build Status">
+        <img src="https://travis-ci.org/rwth-acis/las2peer-user-information-service.svg?branch=master" /></a>
+  <a href="https://libraries.io/github/rwth-acis/las2peer-user-information-service" alt="Dependencies">
+        <img src="https://img.shields.io/librariesio/github/rwth-acis/las2peer-user-information-service" /></a>
+</p>
 
-# las2peer User Information Service
 
 This service stores user related information for usage from other services.
 The user can set up permissions for each field (currently public/private only).
