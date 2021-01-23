@@ -13,3 +13,9 @@ etc/ivy/ivy.jar
 restMapping.xml
 /out
 /output/
+.classpath
+.classpath
+.project
+.project
+.project
+etc/launcher-configuration.ini
