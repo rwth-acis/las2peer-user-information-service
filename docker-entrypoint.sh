@@ -26,7 +26,7 @@ if [[ ! -z "${BOOTSTRAP}" ]]; then
         fi
     done
 fi
-
+echo external_address = $(curl -s https://ipinfo.io/ip):${LAS2PEER_PORT} > etc/pastry.properties
 # prevent glob expansion in lib/*
 set -f
 LAUNCH_COMMAND='java -cp lib/* i5.las2peer.tools.L2pNodeLauncher -s service -p '"${LAS2PEER_PORT} ${SERVICE_EXTRA_ARGS}"
