@@ -13,3 +13,9 @@ etc/ivy/ivy.jar
 restMapping.xml
 /out
 /output/
+
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
