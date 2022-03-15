@@ -13,6 +13,10 @@ export SERVICE_NAME=$(awk -F "=" '/service.name/ {print $2}' gradle.properties)
 export SERVICE_CLASS=$(awk -F "=" '/service.class/ {print $2}' gradle.properties)
 export SERVICE=${SERVICE_NAME}.${SERVICE_CLASS}@${SERVICE_VERSION}
 
+# set defaults for optional service parameters
+[[ -z "${SERVICE_PASSPHRASE}" ]] && export SERVICE_PASSPHRASE='user'
+
+
 # wait for any bootstrap host to be available
 if [[ ! -z "${BOOTSTRAP}" ]]; then
     echo "Waiting for any bootstrap host to become available..."
